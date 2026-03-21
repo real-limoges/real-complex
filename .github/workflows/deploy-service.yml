@@ -1,0 +1,54 @@
+name: Deploy Service
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+        description: Cloud Run service name (e.g. "fugue")
+      dockerfile_path:
+        required: false
+        type: string
+        default: "./Dockerfile"
+        description: Path to the Dockerfile
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  REGION: us-central1
+  REGISTRY: us-central1-docker.pkg.dev/realcomplex-prod/realcomplex-images
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/736771798599/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
+          service_account: deployer@realcomplex-prod.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        run: |
+          IMAGE="${REGISTRY}/${{ inputs.service_name }}:${{ github.sha }}"
+          docker build -t "$IMAGE" -f "${{ inputs.dockerfile_path }}" .
+          docker push "$IMAGE"
+
+      - name: Deploy to Cloud Run
+        run: |
+          IMAGE="${REGISTRY}/${{ inputs.service_name }}:${{ github.sha }}"
+          gcloud run deploy "${{ inputs.service_name }}" \
+            --image "$IMAGE" \
+            --region "$REGION" \
+            --quiet

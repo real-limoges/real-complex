@@ -1,0 +1,32 @@
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Pulumi
+.pulumi/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docs
+docs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit these
+.env
+*.pem
+*.key
+credentials.json
+service-account-key.json

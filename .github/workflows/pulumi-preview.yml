@@ -1,0 +1,40 @@
+name: Pulumi Preview
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  PULUMI_STACK: prod
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/736771798599/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
+          service_account: deployer@realcomplex-prod.iam.gserviceaccount.com
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - run: uv sync
+
+      - uses: pulumi/actions@v6
+        with:
+          command: preview
+          stack-name: prod
+          comment-on-pr: true
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
