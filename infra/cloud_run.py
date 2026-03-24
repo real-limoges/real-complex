@@ -31,6 +31,13 @@ _fugue_secret_key_base_access = gcp.secretmanager.SecretIamMember(
     member=fugue_runner_sa.email.apply(lambda email: f"serviceAccount:{email}"),
 )
 
+_cozodb_auth_token_access = gcp.secretmanager.SecretIamMember(
+    "fugue-runner-cozodb-auth-token-access",
+    secret_id=secrets["cozodb-auth-token"].id,
+    role="roles/secretmanager.secretAccessor",
+    member=fugue_runner_sa.email.apply(lambda email: f"serviceAccount:{email}"),
+)
+
 
 # ---------- Fugue (Elixir/Phoenix) ----------
 
@@ -66,6 +73,10 @@ fugue = gcp.cloudrunv2.Service(
                 ),
                 envs=[
                     gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
+                        name="PHX_SERVER",
+                        value="true",
+                    ),
+                    gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
                         name="SECRET_KEY_BASE",
                         value_source=gcp.cloudrunv2.ServiceTemplateContainerEnvValueSourceArgs(
                             secret_key_ref=gcp.cloudrunv2.ServiceTemplateContainerEnvValueSourceSecretKeyRefArgs(
@@ -75,12 +86,17 @@ fugue = gcp.cloudrunv2.Service(
                         ),
                     ),
                     gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
-                        name="COZODB_HOST",
-                        value=cozodb_internal_ip,
+                        name="COZODB_URL",
+                        value=cozodb_internal_ip.apply(lambda ip: f"http://{ip}:9070"),
                     ),
                     gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
-                        name="COZODB_PORT",
-                        value="9070",
+                        name="COZODB_AUTH_TOKEN",
+                        value_source=gcp.cloudrunv2.ServiceTemplateContainerEnvValueSourceArgs(
+                            secret_key_ref=gcp.cloudrunv2.ServiceTemplateContainerEnvValueSourceSecretKeyRefArgs(
+                                secret=secrets["cozodb-auth-token"].secret_id,
+                                version="latest",
+                            ),
+                        ),
                     ),
                     gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
                         name="PHX_HOST",
@@ -94,6 +110,7 @@ fugue = gcp.cloudrunv2.Service(
         depends_on=[
             api_services["run.googleapis.com"],
             _fugue_secret_key_base_access,
+            _cozodb_auth_token_access,
         ],
     ),
 )

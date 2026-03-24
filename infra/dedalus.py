@@ -14,7 +14,7 @@ Workflow:
   Local:  dedalus pipeline → out/
   Upload: ./scripts/gcp-upload.sh -o out/
   Query:  gcloud compute instances start dedalus-query
-          curl -X POST http://<ip>:9070/text-query \\
+          curl -X POST http://<ip>:3000/text-query \\
             -H "content-type: application/json" \\
             -d '{"script": "?[title] := *article{title}, :limit 10"}'
 """
@@ -112,7 +112,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/cozo server --path ${DATA_DIR}/wikipedia.db --port 9070 --bind 0.0.0.0 --engine rocksdb
+ExecStart=/usr/local/bin/cozo server --path ${DATA_DIR}/wikipedia.db --bind 0.0.0.0 --engine rocksdb
 Restart=on-failure
 RestartSec=5
 
@@ -124,7 +124,7 @@ systemctl daemon-reload
 systemctl enable cozodb
 systemctl restart cozodb
 
-echo "$(date): Dedalus VM startup complete. CozoDB listening on :9070"
+echo "$(date): Dedalus VM startup complete. CozoDB listening on :3000"
 """
 
 # SA for the VM — needs GCS read access only

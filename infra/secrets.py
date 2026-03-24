@@ -15,6 +15,7 @@ from infra.project import api_services
 
 _SECRETS = [
     "fugue-secret-key-base",      # Phoenix SECRET_KEY_BASE
+    "cozodb-auth-token",          # CozoDB x-cozo-auth header token
 ]
 
 secrets: dict[str, gcp.secretmanager.Secret] = {}

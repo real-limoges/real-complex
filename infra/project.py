@@ -19,6 +19,8 @@ _REQUIRED_APIS = [
     "iam.googleapis.com",                # IAM + Workload Identity Federation
     "iamcredentials.googleapis.com",     # SA token creation (WIF needs this)
     "cloudresourcemanager.googleapis.com",  # Project-level IAM bindings
+    "cloudbuild.googleapis.com",            # Cloud Build (Docker image builds)
+    "dns.googleapis.com",                   # Cloud DNS
 ]
 
 # Create a Service resource for each API.  We store them in a dict so other

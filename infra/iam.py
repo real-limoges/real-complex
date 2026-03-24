@@ -75,6 +75,14 @@ deployer_registry_writer = gcp.projects.IAMMember(
     member=deployer_sa.email.apply(lambda email: f"serviceAccount:{email}"),
 )
 
+# deployer can submit Cloud Build jobs
+deployer_cloudbuild = gcp.projects.IAMMember(
+    "deployer-cloudbuild",
+    project=project,
+    role="roles/cloudbuild.builds.editor",
+    member=deployer_sa.email.apply(lambda email: f"serviceAccount:{email}"),
+)
+
 # deployer can act as other service accounts (needed to deploy Cloud Run
 # services that run as fugue-runner)
 deployer_sa_user = gcp.projects.IAMMember(

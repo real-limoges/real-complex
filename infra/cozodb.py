@@ -1,7 +1,7 @@
 """CozoDB — GCE e2-micro VM with persistent data disk and daily GCS backups.
 
 Runs CozoDB on an internal-only VM (no public IP).  Cloud Run services reach
-it via Direct VPC Egress on the internal IP (port 9070).
+it via Direct VPC Egress on the internal IP (port 3000).
 
 The VM uses debian-12 with CozoDB installed directly.  A separate persistent
 disk stores data so it survives VM recreation.
@@ -112,8 +112,10 @@ if ! command -v cozo &>/dev/null; then
     else
         COZO_ARCH="aarch64"
     fi
-    COZO_URL="https://github.com/cozodb/cozo/releases/download/v${COZO_VERSION}/cozo-bin-${COZO_VERSION}-${COZO_ARCH}-unknown-linux-gnu.tar.gz"
-    curl -sSfL "$COZO_URL" | tar xz -C /usr/local/bin
+    COZO_URL="https://github.com/cozodb/cozo/releases/download/v${COZO_VERSION}/cozo-${COZO_VERSION}-${COZO_ARCH}-unknown-linux-gnu.gz"
+    curl -sSfL "$COZO_URL" -o /tmp/cozo.gz
+    gunzip /tmp/cozo.gz
+    mv /tmp/cozo /usr/local/bin/cozo
     chmod +x /usr/local/bin/cozo
 fi
 
@@ -125,7 +127,26 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/cozo server --path ${DATA_DIR}/data.db --port 9070 --bind 0.0.0.0 --engine rocksdb
+ExecStart=/usr/local/bin/cozo server --path ${DATA_DIR}/data.db --engine rocksdb
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# socat proxy: expose CozoDB on 0.0.0.0:3000 so VPC clients can reach it
+apt-get install -y --no-install-recommends socat
+
+cat > /etc/systemd/system/cozodb-proxy.service <<EOF
+[Unit]
+Description=CozoDB VPC proxy
+After=cozodb.service
+Requires=cozodb.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/socat TCP-LISTEN:9070,bind=0.0.0.0,fork,reuseaddr TCP:127.0.0.1:3000
 Restart=on-failure
 RestartSec=5
 
@@ -134,15 +155,15 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable cozodb
-systemctl restart cozodb
+systemctl enable cozodb cozodb-proxy
+systemctl restart cozodb cozodb-proxy
 
 # Daily backup cron: copy DB to GCS at 3am UTC
 cat > /etc/cron.d/cozodb-backup <<EOF
 0 3 * * * root gcloud storage cp -r "${DATA_DIR}/data.db" "gs://${BUCKET}/daily/\$(date +\\%Y-\\%m-\\%d)/" 2>/dev/null
 EOF
 
-echo "$(date): CozoDB VM startup complete. Listening on :9070"
+echo "$(date): CozoDB VM startup complete. Listening on localhost:3000, VPC proxy on 0.0.0.0:9070"
 """
 
 # ---------- GCE Instance ----------
