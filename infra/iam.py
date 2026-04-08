@@ -39,6 +39,16 @@ fugue_runner_sa = gcp.serviceaccount.Account(
     ),
 )
 
+# SA that Ish (Haskell, internal-only) runs as.
+ish_runner_sa = gcp.serviceaccount.Account(
+    "ish-runner",
+    account_id="ish-runner",
+    display_name="Ish Cloud Run runtime SA",
+    opts=pulumi.ResourceOptions(
+        depends_on=[api_services["iam.googleapis.com"]],
+    ),
+)
+
 # SA that CI/CD uses to push images and deploy Cloud Run services.
 deployer_sa = gcp.serviceaccount.Account(
     "deployer",
@@ -145,4 +155,5 @@ wif_deployer_binding = gcp.serviceaccount.IAMMember(
 # Export values that GitHub Actions workflows need for authentication.
 pulumi.export("deployer_sa_email", deployer_sa.email)
 pulumi.export("fugue_runner_sa_email", fugue_runner_sa.email)
+pulumi.export("ish_runner_sa_email", ish_runner_sa.email)
 pulumi.export("wif_provider_name", wif_provider.name)

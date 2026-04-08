@@ -17,7 +17,7 @@ import infra.cozodb      # noqa: F401 — CozoDB VM on GCE (internal VPC)
 import infra.dedalus     # noqa: F401 — GCS bucket + CozoDB VM for Wikipedia graph
 
 # Phase 4: Application Services
-import infra.cloud_run   # noqa: F401 — Cloud Run services (Fugue)
+import infra.cloud_run   # noqa: F401 — Cloud Run services (Ish, Fugue)
 
 # Phase 6: DNS & Domain
 import infra.dns         # noqa: F401 — Cloud DNS zone + domain mapping
