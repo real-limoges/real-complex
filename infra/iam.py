@@ -101,14 +101,6 @@ deployer_storage = gcp.projects.IAMMember(
     member=deployer_sa.email.apply(lambda email: f"serviceAccount:{email}"),
 )
 
-# deployer can stream Cloud Build logs
-deployer_logs_viewer = gcp.projects.IAMMember(
-    "deployer-logs-viewer",
-    project=project,
-    role="roles/logging.viewer",
-    member=deployer_sa.email.apply(lambda email: f"serviceAccount:{email}"),
-)
-
 # deployer can act as other service accounts (needed to deploy Cloud Run
 # services that run as fugue-runner)
 deployer_sa_user = gcp.projects.IAMMember(
