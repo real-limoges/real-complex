@@ -93,6 +93,14 @@ deployer_cloudbuild = gcp.projects.IAMMember(
     member=deployer_sa.email.apply(lambda email: f"serviceAccount:{email}"),
 )
 
+# deployer can access Cloud Build storage bucket (source uploads)
+deployer_storage = gcp.projects.IAMMember(
+    "deployer-storage-admin",
+    project=project,
+    role="roles/storage.admin",
+    member=deployer_sa.email.apply(lambda email: f"serviceAccount:{email}"),
+)
+
 # deployer can act as other service accounts (needed to deploy Cloud Run
 # services that run as fugue-runner)
 deployer_sa_user = gcp.projects.IAMMember(
