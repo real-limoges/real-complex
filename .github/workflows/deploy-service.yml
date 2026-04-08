@@ -12,6 +12,10 @@ on:
         type: string
         default: "./Dockerfile"
         description: Path to the Dockerfile
+      service_account:
+        required: true
+        type: string
+        description: Service account email for Cloud Run runtime (e.g. "fugue-runner@project.iam.gserviceaccount.com")
 
 permissions:
   id-token: write
@@ -52,4 +56,5 @@ jobs:
           gcloud run deploy "${{ inputs.service_name }}" \
             --image "$IMAGE" \
             --region "$REGION" \
+            --service-account "${{ inputs.service_account }}" \
             --quiet
