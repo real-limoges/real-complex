@@ -43,23 +43,11 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
-      - name: Build and push image via Cloud Build
+      - name: Build and push image
         run: |
           IMAGE="${REGISTRY}/${{ inputs.service_name }}:${{ github.sha }}"
-          BUILD_ID=$(gcloud builds submit \
-            --tag "$IMAGE" \
-            --quiet \
-            --async \
-            --format='value(id)')
-          echo "Waiting for build $BUILD_ID..."
-          while true; do
-            STATUS=$(gcloud builds describe "$BUILD_ID" --format='value(status)' --quiet)
-            case "$STATUS" in
-              SUCCESS) echo "Build succeeded"; break ;;
-              FAILURE|INTERNAL_ERROR|TIMEOUT|CANCELLED|EXPIRED) echo "Build failed: $STATUS"; exit 1 ;;
-              *) sleep 10 ;;
-            esac
-          done
+          docker build -t "$IMAGE" -f "${{ inputs.dockerfile_path }}" .
+          docker push "$IMAGE"
 
       - name: Deploy to Cloud Run
         run: |

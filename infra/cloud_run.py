@@ -62,10 +62,6 @@ ish = gcp.cloudrunv2.Service(
                 ),
                 envs=[
                     gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
-                        name="ISH_PORT",
-                        value="7333",
-                    ),
-                    gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
                         name="ISH_DB_PATH",
                         value="/data/ish.db",
                     ),
