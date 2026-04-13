@@ -71,6 +71,7 @@ ish = gcp.cloudrunv2.Service(
     ),
     opts=pulumi.ResourceOptions(
         depends_on=[api_services["run.googleapis.com"]],
+        ignore_changes=["template.containers[0].image"],
     ),
 )
 
@@ -97,7 +98,7 @@ fugue = gcp.cloudrunv2.Service(
             max_instance_count=2,
         ),
         vpc_access=gcp.cloudrunv2.ServiceTemplateVpcAccessArgs(
-            egress="PRIVATE_RANGES_ONLY",
+            egress="ALL_TRAFFIC",
             network_interfaces=[
                 gcp.cloudrunv2.ServiceTemplateVpcAccessNetworkInterfaceArgs(
                     network=vpc.id,
@@ -160,6 +161,7 @@ fugue = gcp.cloudrunv2.Service(
             _fugue_secret_key_base_access,
             _cozodb_auth_token_access,
         ],
+        ignore_changes=["template.containers[0].image"],
     ),
 )
 
