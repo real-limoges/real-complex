@@ -23,6 +23,24 @@ gcp_config = pulumi.Config("gcp")
 project = gcp_config.require("project")
 region = gcp_config.get("region") or "us-central1"
 
+PLACEHOLDER_IMAGE = "us-docker.pkg.dev/cloudrun/container/hello:latest"
+
+
+def _live_image(service_name: str) -> str:
+    # CI/CD owns the container image. Read whatever is currently deployed so
+    # Pulumi's desired state matches live state — otherwise unrelated template
+    # edits (env vars, scaling) send the full container spec and clobber the
+    # real image back to the placeholder.
+    try:
+        svc = gcp.cloudrunv2.get_service(
+            name=service_name, location=region, project=project
+        )
+    except Exception:
+        return PLACEHOLDER_IMAGE
+    if svc.templates and svc.templates[0].containers:
+        return svc.templates[0].containers[0].image
+    return PLACEHOLDER_IMAGE
+
 # ---------- Secret Access for Fugue Runner SA ----------
 
 _fugue_secret_key_base_access = gcp.secretmanager.SecretIamMember(
@@ -55,7 +73,7 @@ ish = gcp.cloudrunv2.Service(
         ),
         containers=[
             gcp.cloudrunv2.ServiceTemplateContainerArgs(
-                image="us-docker.pkg.dev/cloudrun/container/hello:latest",
+                image=_live_image("ish"),
                 ports=gcp.cloudrunv2.ServiceTemplateContainerPortsArgs(
                     container_port=7333,
                 ),
@@ -101,7 +119,7 @@ garcon = gcp.cloudrunv2.Service(
         ),
         containers=[
             gcp.cloudrunv2.ServiceTemplateContainerArgs(
-                image="us-docker.pkg.dev/cloudrun/container/hello:latest",
+                image=_live_image("garcon"),
                 ports=gcp.cloudrunv2.ServiceTemplateContainerPortsArgs(
                     container_port=7444,
                 ),
@@ -150,8 +168,7 @@ fugue = gcp.cloudrunv2.Service(
         ),
         containers=[
             gcp.cloudrunv2.ServiceTemplateContainerArgs(
-                # Placeholder image — CI/CD deploys the real one.
-                image="us-docker.pkg.dev/cloudrun/container/hello:latest",
+                image=_live_image("fugue"),
                 ports=gcp.cloudrunv2.ServiceTemplateContainerPortsArgs(
                     container_port=4000,
                 ),
