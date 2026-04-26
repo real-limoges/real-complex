@@ -17,7 +17,6 @@ from infra.project import api_services
 from infra.networking import vpc, subnet
 from infra.iam import fugue_runner_sa, ish_runner_sa, garcon_runner_sa
 from infra.secrets import secrets
-from infra.cozodb import cozodb_internal_ip
 
 gcp_config = pulumi.Config("gcp")
 project = gcp_config.require("project")
@@ -46,13 +45,6 @@ def _live_image(service_name: str) -> str:
 _fugue_secret_key_base_access = gcp.secretmanager.SecretIamMember(
     "fugue-runner-secret-key-base-access",
     secret_id=secrets["fugue-secret-key-base"].id,
-    role="roles/secretmanager.secretAccessor",
-    member=fugue_runner_sa.email.apply(lambda email: f"serviceAccount:{email}"),
-)
-
-_cozodb_auth_token_access = gcp.secretmanager.SecretIamMember(
-    "fugue-runner-cozodb-auth-token-access",
-    secret_id=secrets["cozodb-auth-token"].id,
     role="roles/secretmanager.secretAccessor",
     member=fugue_runner_sa.email.apply(lambda email: f"serviceAccount:{email}"),
 )
@@ -190,19 +182,6 @@ fugue = gcp.cloudrunv2.Service(
                         ),
                     ),
                     gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
-                        name="COZODB_URL",
-                        value=cozodb_internal_ip.apply(lambda ip: f"http://{ip}:9070"),
-                    ),
-                    gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
-                        name="COZODB_AUTH_TOKEN",
-                        value_source=gcp.cloudrunv2.ServiceTemplateContainerEnvValueSourceArgs(
-                            secret_key_ref=gcp.cloudrunv2.ServiceTemplateContainerEnvValueSourceSecretKeyRefArgs(
-                                secret=secrets["cozodb-auth-token"].secret_id,
-                                version="latest",
-                            ),
-                        ),
-                    ),
-                    gcp.cloudrunv2.ServiceTemplateContainerEnvArgs(
                         name="ISH_URL",
                         value=ish.uri,
                     ),
@@ -222,7 +201,6 @@ fugue = gcp.cloudrunv2.Service(
         depends_on=[
             api_services["run.googleapis.com"],
             _fugue_secret_key_base_access,
-            _cozodb_auth_token_access,
         ],
         ignore_changes=["template.containers[0].image"],
     ),

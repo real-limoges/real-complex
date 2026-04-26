@@ -12,10 +12,6 @@ import infra.networking  # noqa: F401 — VPC + subnet + firewall rules
 import infra.secrets     # noqa: F401 — Secret Manager secret containers
 import infra.iam         # noqa: F401 — Service accounts + Workload Identity Federation
 
-# Phase 2: Data Services
-import infra.cozodb      # noqa: F401 — CozoDB VM on GCE (internal VPC)
-import infra.dedalus     # noqa: F401 — GCS bucket + CozoDB VM for Wikipedia graph
-
 # Phase 4: Application Services
 import infra.cloud_run   # noqa: F401 — Cloud Run services (Ish, Fugue)
 
