@@ -1,7 +1,7 @@
 """VPC + Subnet for internal communication.
 
-Cloud Run services use "Direct VPC Egress" to reach the CozoDB VM on its
-internal IP.  This avoids the $7/mo VPC Access Connector.
+Cloud Run services use "Direct VPC Egress" for internal VPC reachability.
+This avoids the $7/mo VPC Access Connector.
 
 Pulumi concept: resources can reference other resources' outputs.  When we
 write `network=vpc.id`, Pulumi knows the subnet depends on the VPC and will
@@ -31,38 +31,6 @@ subnet = gcp.compute.Subnetwork(
     ip_cidr_range="10.0.0.0/24",
     region=region,
     network=vpc.id,
-)
-
-# Firewall: allow internal VPC traffic on CozoDB port (TCP 9070).
-# Source range is our subnet CIDR — only resources inside the VPC can connect.
-cozodb_internal_firewall = gcp.compute.Firewall(
-    "allow-cozodb-internal",
-    name="allow-cozodb-internal",
-    network=vpc.id,
-    allows=[
-        gcp.compute.FirewallAllowArgs(
-            protocol="tcp",
-            ports=["9070"],
-        ),
-    ],
-    source_ranges=["10.0.0.0/24"],
-    target_tags=["cozodb"],
-)
-
-# Firewall: allow traffic to CozoDB HTTP API (TCP 9070) on the Dedalus query VM.
-# Open to 0.0.0.0/0 since the VM has an ephemeral public IP for direct access.
-cozodb_firewall = gcp.compute.Firewall(
-    "allow-cozodb",
-    name="allow-cozodb",
-    network=vpc.id,
-    allows=[
-        gcp.compute.FirewallAllowArgs(
-            protocol="tcp",
-            ports=["9070"],
-        ),
-    ],
-    source_ranges=["0.0.0.0/0"],
-    target_tags=["cozodb"],
 )
 
 # Cloud Router + NAT — lets internal-only VMs (no public IP) reach the internet
